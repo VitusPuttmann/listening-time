@@ -2,11 +2,13 @@ This repository contains solutions for the Kaggle challenge "Predict Podcast Lis
 <br>
 <br>
 Using the repository requires downloading the original data files from https://www.kaggle.com/competitions/playground-series-s5e4/data and store them as follows:<br>
+<br>
 'train.csv' as '/original/train.csv'<br>
-'test.csv' as '/original/test.csv'
+'test.csv' as '/original/test.csv'<br>
 <br>
 <br>
 The scripts included have the following functions:<br>
+<br>
 01 Checks and prepares the original data<br>
 02 Explores the data via descriptive statistics and visualizations<br>
 03 Engineers new features<br>
@@ -15,7 +17,8 @@ The scripts included have the following functions:<br>
 06 Fits tree-based models<br>
 07 Fits other regression models<br>
 08 Fits gradient boosting<br>
-51 Comprises submitted solution 1
+<br>
+51 Comprises submitted solution 1<br>
 <br>
 <br>
 © Vitus Püttmann 2025
