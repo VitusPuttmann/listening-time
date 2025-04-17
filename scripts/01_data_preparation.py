@@ -57,6 +57,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 X_train.info()
 X_test.info()
 
+
 # ID                                                                        #
 
 X_train['id'].unique()
@@ -244,16 +245,6 @@ y_train.dtype
 y_train.describe()
 y_train.isna().sum()
 
-# -> No issues
-
-y_test.unique()
-len(y_test.unique())
-y_test.dtype
-y_test.describe()
-y_test.isna().sum()
-
-# -> No issues
-
 
 ##                                                                          ##
 ## Clean data
@@ -261,7 +252,7 @@ y_test.isna().sum()
 X_train.info()
 
 
-# Episode length
+# Episode length                                                            #
 
 # -> Handle missing values
 
@@ -280,7 +271,7 @@ X_train[X_train['episode_length'].isna()]['episode_sentiment'].value_counts()
 # -> No obvious systematic associations between missings and other features
 # -> Issue that episode length directly influences listening time
 # -> Dropping instances with missings not optimal due to missings in the
-#       testing datasetdata
+#       testing data
 #   -> Impute missing values with 0 and add imputation dummy
 
 for dataset in [X_train, X_test]:
@@ -290,8 +281,10 @@ for dataset in [X_train, X_test]:
     ] = 0
     dataset['episode_length_imp_dum'] = 0
     dataset.loc[dataset['episode_length'].isna(), 'episode_length_imp_dum'] = 1
+
 X_train = shift_col(X_train, 'episode_length', 'episode_length_imp')    
-X_train = shift_col(X_train, 'episode_length_imp', 'episode_length_imp_dum')    
+X_train = shift_col(X_train, 'episode_length_imp', 'episode_length_imp_dum')
+
 X_test = shift_col(X_test, 'episode_length', 'episode_length_imp')    
 X_test = shift_col(X_test, 'episode_length_imp', 'episode_length_imp_dum')    
 
@@ -302,7 +295,7 @@ X_test['episode_length_imp'].isna().sum()
 X_test['episode_length_imp_dum'].describe()
 
 
-# Guest popularity
+# Guest popularity                                                          #
 
 # -> Handle missing values
 
@@ -336,16 +329,18 @@ for dataset in [X_train, X_test]:
 
 X_train = shift_col(X_train, 'guest_popularity', 'guest_popularity_imp')
 X_train = shift_col(X_train, 'guest_popularity_imp', 'guest_popularity_imp_dum')
+
 X_test = shift_col(X_test, 'guest_popularity', 'guest_popularity_imp')
 X_test = shift_col(X_test, 'guest_popularity_imp', 'guest_popularity_imp_dum')
 
 X_train['guest_popularity_imp'].isna().sum()
 X_train['guest_popularity_imp_dum'].describe()
+
 X_test['guest_popularity_imp'].isna().sum()
 X_test['guest_popularity_imp_dum'].describe()
 
 
-# Number ads
+# Number ads                                                                #
 
 # -> Handle missing values
 
@@ -386,6 +381,7 @@ for dataset in [X_train, X_test]:
     dataset.loc[dataset['number_ads'] > 3, 'number_ads'] = 3
 
 X_train['number_ads'].describe()
+
 X_test['number_ads'].describe()
 
 
@@ -393,7 +389,7 @@ X_test['number_ads'].describe()
 ## Save dataset
 
 X_train.to_csv('data/01_01_X_train_prep.csv', index=False)
-y_train.to_csv('data/99_01_y_train_prep.csv', index=False)
+y_train.to_csv('data/51_01_y_train_prep.csv', index=False)
 
 X_test.to_csv('data/01_02_X_test_prep.csv', index=False)
-y_test.to_csv('data/99_02_y_test_prep.csv', index=False)
+y_test.to_csv('data/51_02_y_test_prep.csv', index=False)
