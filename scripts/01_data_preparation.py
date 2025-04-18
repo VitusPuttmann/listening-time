@@ -239,11 +239,31 @@ for dataset in [X_train, X_test]:
 
 # Listening time (minutes)                                                  #
 
-y_train.unique()
-len(y_train.unique())
-y_train.dtype
-y_train.describe()
-y_train.isna().sum()
+# Train dataset
+
+y_train = pd.DataFrame(y_train)
+y_train['Listening_Time_minutes'].unique()
+len(y_train['Listening_Time_minutes'].unique())
+y_train['Listening_Time_minutes'].dtype
+y_train['Listening_Time_minutes'].describe()
+y_train['Listening_Time_minutes'].isna().sum()
+
+# -> No issues
+
+y_train.rename(
+    columns={'Listening_Time_minutes': 'listening_time'},
+    inplace=True
+)
+
+# Test dataset                                                              #
+
+y_test.unique()
+len(y_test.unique())
+y_test.unique().dtype
+y_test.describe()
+y_test.isna().sum()
+
+# -> No issues
 
 
 ##                                                                          ##
