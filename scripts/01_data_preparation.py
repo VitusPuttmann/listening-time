@@ -9,7 +9,7 @@
 ##                                                                          ##
 ##  Version: 1.1                                                            ##
 ##                                                                          ##
-##  Date: 16.04.2025                                                        ##
+##  Date: 23.04.2025                                                        ##
 ##                                                                          ##
 ##############################################################################
 
@@ -58,7 +58,8 @@ X_train.info()
 X_test.info()
 
 
-# ID                                                                        #
+#                                                                           #
+# ID
 
 X_train['id'].unique()
 len(X_train['id'].unique())
@@ -69,7 +70,8 @@ X_train['id'].isna().sum()
 # -> No issues
 
 
-# Podcast name                                                              #
+#                                                                           #
+# Podcast name
 
 X_train['Podcast_Name'].unique()
 len(X_train['Podcast_Name'].unique())
@@ -86,7 +88,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Episode title                                                             #
+#                                                                           #
+# Episode title
 
 X_train['Episode_Title'].unique()
 len(X_train['Episode_Title'].unique())
@@ -104,7 +107,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Episode length (minutes)                                                  #
+#                                                                           #
+# Episode length
 
 X_train['Episode_Length_minutes'].unique()
 X_train['Episode_Length_minutes'].dtype
@@ -121,7 +125,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Genre                                                                     #
+#                                                                           #
+# Genre
 
 X_train['Genre'].unique()
 len(X_train['Genre'].unique())
@@ -138,7 +143,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Host popularity (percentage)                                              #
+#                                                                           #
+# Host popularity
 
 X_train['Host_Popularity_percentage'].unique()
 X_train['Host_Popularity_percentage'].dtype
@@ -154,7 +160,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Publication day                                                           #
+#                                                                           #
+# Publication day
 
 X_train['Publication_Day'].unique()
 len(X_train['Publication_Day'].unique())
@@ -170,7 +177,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Publication time                                                          #
+#                                                                           #
+# Publication time
 
 X_train['Publication_Time'].unique()
 len(X_train['Publication_Time'].unique())
@@ -186,7 +194,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Guest popularity (percentage)                                             #
+#                                                                           #
+# Guest popularity
 
 X_train['Guest_Popularity_percentage'].unique()
 len(X_train['Guest_Popularity_percentage'].unique())
@@ -202,8 +211,11 @@ for dataset in [X_train, X_test]:
         inplace=True
     )
 
+X_train = shift_col(X_train, 'host_popularity', 'guest_popularity')
+X_test = shift_col(X_test, 'host_popularity', 'guest_popularity')
 
-# Number of ads                                                             #
+#                                                                           #
+# Number of ads
 
 X_train['Number_of_Ads'].unique()
 len(X_train['Number_of_Ads'].unique())
@@ -221,7 +233,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Episode sentiment                                                         #
+#                                                                           #
+# Episode sentiment
 
 X_train['Episode_Sentiment'].unique()
 len(X_train['Episode_Sentiment'].unique())
@@ -237,9 +250,8 @@ for dataset in [X_train, X_test]:
     )
 
 
-# Listening time (minutes)                                                  #
-
-# Train dataset
+#                                                                           #
+# Listening time
 
 y_train = pd.DataFrame(y_train)
 y_train['Listening_Time_minutes'].unique()
@@ -255,7 +267,6 @@ y_train.rename(
     inplace=True
 )
 
-# Test dataset                                                              #
 
 y_test.unique()
 len(y_test.unique())
@@ -272,7 +283,8 @@ y_test.isna().sum()
 X_train.info()
 
 
-# Episode length                                                            #
+#                                                                           #
+# Episode length
 
 # -> Handle missing values
 
@@ -315,7 +327,8 @@ X_test['episode_length_imp'].isna().sum()
 X_test['episode_length_imp_dum'].describe()
 
 
-# Guest popularity                                                          #
+#                                                                           #
+# Guest popularity
 
 # -> Handle missing values
 
@@ -360,7 +373,8 @@ X_test['guest_popularity_imp'].isna().sum()
 X_test['guest_popularity_imp_dum'].describe()
 
 
-# Number ads                                                                #
+#                                                                           #
+# Number ads
 
 # -> Handle missing values
 
