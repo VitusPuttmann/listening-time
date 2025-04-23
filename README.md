@@ -12,11 +12,7 @@ The scripts included have the following functions:<br>
 01 Checks and prepares the original data<br>
 02 Explores the data via descriptive statistics and visualizations<br>
 03 Engineers new features<br>
-04 Selects the current approach underlying the model fitting<br>
-05 Fits linear regression models<br>
-06 Fits tree-based models<br>
-07 Fits other regression models<br>
-08 Fits gradient boosting<br>
+04 Trains and tests the machine learning models<br>
 <br>
 51 Comprises submitted solution 1<br>
 <br>
