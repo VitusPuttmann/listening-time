@@ -520,7 +520,7 @@ smf.ols(
 
 
 #                                                                           #
-# Publication time
+# Episode sentiment
 
 sentiment_map = {
     'Negative': '1 Negative',
