@@ -9,7 +9,7 @@
 ##                                                                          ##
 ##  Version: 1.1                                                            ##
 ##                                                                          ##
-##  Date: 23.04.2025                                                        ##
+##  Date: 24.04.2025                                                        ##
 ##                                                                          ##
 ##############################################################################
 
@@ -40,7 +40,6 @@ def shift_col(dataset: pd.DataFrame, left: str, right: str) -> pd.DataFrame:
 ## Import and split data
 
 podcast = pd.read_csv('original/train.csv')
-
 podcast.info()
 
 X = podcast.drop('Listening_Time_minutes', axis=1)
