@@ -213,6 +213,7 @@ for dataset in [X_train, X_test]:
 X_train = shift_col(X_train, 'host_popularity', 'guest_popularity')
 X_test = shift_col(X_test, 'host_popularity', 'guest_popularity')
 
+
 #                                                                           #
 # Number of ads
 
