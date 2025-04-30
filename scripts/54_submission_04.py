@@ -463,8 +463,20 @@ X_test = X_test.reindex(columns=X_train.columns, fill_value=0)
 ##                                                                          ##
 ## Fit XGBRegressor
 
-
-
+xgb = XGBRegressor(
+    n_estimators=800,
+    learning_rate=0.05,
+    max_depth=17,
+    min_child_weight=1,
+    subsample=0.8,
+    colsample_bytree=0.6,
+    gamma=0,
+    reg_lambda=1,
+    reg_alpha=0,
+    objective="reg:squarederror",
+    n_jobs=-1,
+    random_state=42
+)
 xgb.fit(X_train, y_train)
 
 xgb_pred = xgb.predict(X_test)

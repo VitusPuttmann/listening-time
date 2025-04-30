@@ -22,11 +22,12 @@ import time
 import numpy as np
 import pandas as pd
 
+from sklearn.model_selection import train_test_split
+from sklearn.model_selection import GridSearchCV
+
 from sklearn.preprocessing import StandardScaler
 
 from sklearn.feature_selection import VarianceThreshold
-
-from sklearn.model_selection import GridSearchCV
 
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import Ridge
@@ -45,6 +46,11 @@ from sklearn.neural_network import MLPRegressor
 import lightgbm as lgb
 
 from xgboost import XGBRegressor
+
+from sklearn.ensemble import StackingRegressor
+
+import torch, torch.nn as nn
+from torch.utils.data import TensorDataset, DataLoader
 
 from sklearn.inspection import permutation_importance
 
@@ -535,12 +541,18 @@ print(
 ##                                                                          ##
 ## Fit XGB Regressor
 
+"""
+
 xgb = XGBRegressor(
-    n_estimators=500,
+    n_estimators=800,
     learning_rate=0.05,
-    max_depth=6,
+    max_depth=17,
+    min_child_weight=1,
     subsample=0.8,
-    colsample_bytree=0.8,
+    colsample_bytree=0.6,
+    gamma=0,
+    reg_lambda=1,
+    reg_alpha=0,
     objective="reg:squarederror",
     n_jobs=-1,
     random_state=42
@@ -556,3 +568,57 @@ print(
     f"RMSE: {round(rmse_xgb, 5)}\n"
     f"Runtime fitting: {round(runtime / 60, 1)} min."
 )
+
+"""
+
+
+##                                                                          ##
+## Fit stacking regressor
+
+"""
+
+base_learners = [
+    ("ridge", Ridge(
+        alpha=0.01,
+        positive=False,
+        solver='sag',
+        tol=0.001
+    )),
+    ("tree",  DecisionTreeRegressor(
+        criterion='squared_error',
+        max_depth=10,
+        min_samples_split=10,
+        min_samples_leaf=20,
+        ccp_alpha = 0.01,
+        random_state=42
+    )),
+    ("rf", RandomForestRegressor(
+        n_estimators=200,
+        max_depth=40,
+        min_samples_split=2,
+        min_samples_leaf=1,
+        max_features=0.3,
+        warm_start=True,
+        n_jobs=1,
+        random_state=42
+    )),
+]
+
+stack = StackingRegressor(
+    estimators=base_learners,
+    final_estimator=Ridge(alpha=0.1),
+    passthrough=False, # set True to add raw features to meta-learner
+    n_jobs=1
+)
+
+stack.fit(X_train, y_train)
+
+stack_pred = stack.predict(X_test)
+rmse_stack = root_mean_squared_error(y_test, stack_pred)
+
+print(
+    f"Stacking regressor\n"
+    f"RMSE: {round(rmse_stack, 5)}\n"
+)
+
+"""
