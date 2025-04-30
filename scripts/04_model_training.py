@@ -9,7 +9,7 @@
 ##                                                                          ##
 ##  Version: 2.0                                                            ##
 ##                                                                          ##
-##  Date: 23.04.2025                                                        ##
+##  Date: 25.04.2025                                                        ##
 ##                                                                          ##
 ##############################################################################
 
@@ -22,7 +22,9 @@ import time
 import numpy as np
 import pandas as pd
 
-from sklearn.metrics import root_mean_squared_error
+from sklearn.preprocessing import StandardScaler
+
+from sklearn.feature_selection import VarianceThreshold
 
 from sklearn.model_selection import GridSearchCV
 
@@ -42,6 +44,12 @@ from sklearn.neural_network import MLPRegressor
 
 import lightgbm as lgb
 
+from xgboost import XGBRegressor
+
+from sklearn.inspection import permutation_importance
+
+from sklearn.metrics import root_mean_squared_error
+
 
 ##                                                                          ##
 ## Define functions
@@ -58,26 +66,6 @@ def calc_runtime(func):
     return wrapper
 
 
-def standardize_train(feat: str) -> pd.DataFrame:
-    """ Standardize feature of the training dataset. """
-
-    X_train_output = X_train.copy()
-    X_train_output[feat] = (
-        X_train_output[feat] - X_train_output[feat].mean()
-    ) / X_train_output[feat].std()
-    return X_train_output
-
-
-def standardize_test(feat: str) -> pd.DataFrame:
-    """ Standardize feature of the testing dataset. """
-
-    X_test_output = X_test.copy()
-    X_test_output[feat] = (
-        X_test_output[feat] - X_train[feat].mean()
-    ) / X_train[feat].std()
-    return X_test_output
-
-
 ##                                                                          ##
 ## Load data
 
@@ -91,37 +79,54 @@ y_test = pd.read_csv('data/51_02_y_test_prep.csv')
 ##                                                                          ##
 ## Prepare data
 
+#                                                                           #
+# Define approach
+
 # -> Define type and inclusion of features via dictionary entry
 
 features = {
     # feature name:             (type,          include)
     'id':                       ('continuous',  False),
-    'podcast_name':             ('categorical', False),
+    'podcast_name':             ('categorical', True),
+    'podcast_topic':            ('categorical', False),
     'episode_title':            ('categorical', False),
-    'episode_title_num':        ('continuous',  False),
+    'episode_title_num':        ('continuous',  True),
     'episode_length':           ('continuous',  False),
     'episode_length_imp':       ('continuous',  True),
+    'episode_length_imp_squ':   ('continuous',  True),
+    'episode_length_imp_alt':   ('continuous',  False),
     'episode_length_imp_dum':   ('categorical', True),
-    'genre':                    ('categorical', False),
-    'host_popularity':          ('continuous',  False),
+    'genre':                    ('categorical', True),
+    'host_popularity':          ('continuous',  True),
+    'host_popularity_squ':      ('continuous',  True),
     'guest_popularity':         ('continuous',  False),
-    'guest_popularity_imp':     ('continuous',  False),
-    'guest_popularity_imp_dum': ('categorical', False),
-    'publication_day':          ('categorical', False),
+    'guest_popularity_imp':     ('continuous',  True),
+    'guest_popularity_imp_squ': ('continuous',  True),
+    'guest_popularity_imp_dum': ('categorical', True),
+    'host_guest_popularity':    ('continuous',  False),
+    'publication_day':          ('categorical', True),
     'publication_day_num':      ('continuous',  False),
-    'publication_time':         ('categorical', False),
+    'publication_weekend':      ('categorical', False),
+    'publication_time':         ('categorical', True),
     'publication_time_num':     ('continuous',  False),
+    'publication_day_time':     ('categorical', False),
     'number_ads':               ('continuous',  True),
+    'ads_per_time':             ('continuous',  True),
     'episode_sentiment':        ('categorical', True),
-    'episode_sentiment_num':    ('continuous',  False)
+    'episode_sentiment_num':    ('continuous',  False),
+    'extreme_sentiment':        ('categorical', False),
 }
+
+# -> Define whether continuous features should be standardized via variable
+
+standardization = True
 
 
 #                                                                           #
 # Drop features
 
 features_drop = [
-    feat for feat, (type, include) in features.items() if not include
+    feat for feat, (feat_type, include) in features.items() if not include
 ]
 
 for dataset in [X_train, X_test]:
@@ -131,20 +136,20 @@ for dataset in [X_train, X_test]:
 #                                                                           #
 # Prepare features
 
-# -> Standardize continuous features
-# -> Standardize test dataset first to have correct reference values in the
-#   train dataset
+# -> Standardize continuous features if chosen
 
-cont_feats = [
-    feat for feat, (type, include) in features.items() if
-        type == 'continuous' and include
-]
- 
-for feat in cont_feats:
-    X_test = standardize_test(feat)
+if standardization:
+    
+    cont_feats = [
+        feat for feat, (feat_type, include) in features.items() if
+        feat_type == 'continuous' and include
+    ]   
 
-for feat in cont_feats:
-    X_train = standardize_train(feat)
+    scaler = StandardScaler().fit(X_train[cont_feats])
+
+    X_train[cont_feats] = scaler.transform(X_train[cont_feats])
+
+    X_test[cont_feats] = scaler.transform(X_test[cont_feats])
 
 # -> Encode string variables
 
@@ -167,6 +172,8 @@ y_train = y_train.to_numpy().ravel()
 ##                                                                          ##
 ## Fit linear regression
 
+"""
+
 lin_reg = LinearRegression()
 lin_reg.fit = calc_runtime(lin_reg.fit)
 
@@ -174,54 +181,189 @@ result, runtime = lin_reg.fit(X_train, y_train)
 lin_reg_pred = lin_reg.predict(X_test)
 rmse_lin_reg = root_mean_squared_error(y_test, lin_reg_pred)
 
-print(f"RMSE: {round(rmse_lin_reg, 5)}\n"
-      f"Runtime fitting: {round(runtime / 60, 1)} min.")
+print(
+    f"Linear regression\n"
+    f"RMSE: {round(rmse_lin_reg, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit Ridge regression
+
+"""
+
+parameters = {
+    'alpha': [0.001, 0.01, 0.1, 1, 10, 100],
+    'solver': ['auto', 'lsqr', 'sag', 'lbfgs'],
+    'tol': [0.01, 0.001]
+}
+
+grid = GridSearchCV(Ridge(), parameters, cv=2)
+grid.fit(X_train, y_train)
+grid.best_params_
+
+"""
+
+"""
+
+ridg_reg = Ridge(
+    alpha=0.01,
+    positive=False,
+    solver='sag',
+    tol=0.001
+)
+ridg_reg.fit = calc_runtime(ridg_reg.fit)
+
+result, runtime = ridg_reg.fit(X_train, y_train)
+ridg_reg_pred = ridg_reg.predict(X_test)
+rmse_ridg_reg = root_mean_squared_error(y_test, ridg_reg_pred)
+
+print(
+    f"Ridge regression\n"
+    f"RMSE: {round(rmse_ridg_reg, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min.")
+
+"""
+
+
+##                                                                          ##
+## Fit Lasso regression
+
+"""
+
+parameters = {
+    'alpha': [0.001, 0.01, 0.1, 1, 10],
+    'tol': [0.01, 0.001],
+    'selection': ['cyclic', 'random']
+}
+
+grid = GridSearchCV(Lasso(), parameters, cv=2)
+grid.fit(X_train, y_train)
+grid.best_params_
+
+"""
+
+"""
+
+lass_reg = Lasso(
+    alpha=0.001,
+    selection='cyclic',
+    tol=0.001)
+lass_reg.fit = calc_runtime(lass_reg.fit)
+
+result, runtime = lass_reg.fit(X_train, y_train)
+lass_reg_pred = lass_reg.predict(X_test)
+rmse_lass_reg = root_mean_squared_error(y_test, lass_reg_pred)
+
+print(
+    f"Lasso regression\n"
+    f"RMSE: {round(rmse_lass_reg, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit Elastic Net
+
+"""
+
+elnet_reg = ElasticNet()
+elnet_reg.fit = calc_runtime(elnet_reg.fit)
+
+result, runtime = elnet_reg.fit(X_train, y_train)
+elnet_reg_pred = elnet_reg.predict(X_test)
+rmse_elnet_reg = root_mean_squared_error(y_test, elnet_reg_pred)
+
+print(
+    f"Elastic net\n"
+    f"RMSE: {round(rmse_elnet_reg, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit Bayesian Ridge regression
+
+"""
+
+bayrid_reg = BayesianRidge()
+bayrid_reg.fit = calc_runtime(bayrid_reg.fit)
+
+result, runtime = bayrid_reg.fit(X_train, y_train)
+bayrid_reg_pred = bayrid_reg.predict(X_test)
+rmse_bayrid_reg = root_mean_squared_error(y_test, bayrid_reg_pred)
+
+print(
+    f"Bayesian Ridge regression\n"
+    f"RMSE: {round(rmse_bayrid_reg, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
 
 
 ##                                                                          ##
 ## Fit decision tree
 
 """
+
 parameters = {
-    'criterion': ['squared_error'],
-    'max_depth': [10],
-    'min_samples_split': [2],
-    'min_samples_leaf': [10],
-    'max_leaf_nodes': [500],
-    'min_impurity_decrease': [0.01],
-    'ccp_alpha': [0.001]
+    'max_depth': [3, 10, 20],
+    'min_samples_split': [2, 10, 50],
+    'min_samples_leaf': [1, 5, 20],
+    'ccp_alpha': [0.1, 0.01]
 }
 
 grid = GridSearchCV(DecisionTreeRegressor(), parameters, cv=2)
 grid.fit(X_train, y_train)
 grid.best_params_
+
+"""
+
 """
 
 dec_tree = DecisionTreeRegressor(
     criterion='squared_error',
     max_depth=10,
-    min_samples_split=2,
-    #min_samples_leaf=10,
-    max_leaf_nodes=500,
-    #min_impurity_decrease=0.01,
-    ccp_alpha = 0.001,
-    random_state=42)
+    min_samples_split=10,
+    min_samples_leaf=20,
+    ccp_alpha = 0.01,
+    random_state=42
+)
 dec_tree.fit = calc_runtime(dec_tree.fit)
 
 result, runtime = dec_tree.fit(X_train, y_train)
 dec_tree_pred = dec_tree.predict(X_test)
 rmse_tree_pred = root_mean_squared_error(y_test, dec_tree_pred)
 
-print(f"RMSE: {round(rmse_tree_pred, 5)}\n"
-      f"Runtime fitting: {round(runtime / 60, 1)} min.")
+print(
+    f"Decision tree\n"
+    f"RMSE: {round(rmse_tree_pred, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
 
+"""
 
 ##                                                                          ##
 ## Fit random forest
 
+"""
+
 rand_forest = RandomForestRegressor(
+    n_estimators=200,
+    max_depth=40,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    max_features=0.3,
     warm_start=True,
-    n_jobs=-1,
+    n_jobs=1,
     random_state=42
 )
 rand_forest.fit = calc_runtime(rand_forest.fit)
@@ -230,5 +372,187 @@ result, runtime = rand_forest.fit(X_train, y_train)
 rand_forest_pred = rand_forest.predict(X_test)
 rmse_rand_forest = root_mean_squared_error(y_test, rand_forest_pred)
 
-print(f"RMSE: {round(rmse_rand_forest, 5)}\n"
-      f"Runtime fitting: {round(runtime / 60, 1)} min.")
+print(
+    "Random forest\n"
+    f"RMSE: {round(rmse_rand_forest, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit gradient boosting machine
+
+"""
+
+gb_mach = GradientBoostingRegressor(
+    n_estimators=200,       # 100 # 500
+    learning_rate=0.2,
+    max_depth=9,
+    min_samples_split=2,
+    min_samples_leaf=1,
+    subsample=1.0,
+    max_features=0.5
+)
+gb_mach.fit = calc_runtime(gb_mach.fit)
+
+result, runtime = gb_mach.fit(X_train, y_train)
+gb_mach_pred = gb_mach.predict(X_test)
+rmse_gb_mach = root_mean_squared_error(y_test, gb_mach_pred)
+
+print(
+    f"Gradient boosting machine\n"
+    f"RMSE: {round(rmse_gb_mach, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit support vector regression
+
+"""
+
+svr = LinearSVR(
+    C=1,
+    epsilon=0.1,
+    tol=1e-2
+)
+svr.fit = calc_runtime(svr.fit)
+
+result, runtime = svr.fit(X_train, y_train)
+svr_pred = svr.predict(X_test)
+rmse_svr = root_mean_squared_error(y_test, svr_pred)
+
+print(
+    f"Support vector regression\n"
+    f"RMSE: {round(rmse_svr, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit KNN regression
+
+"""
+
+knn_reg = KNeighborsRegressor(
+    n_neighbors=47,
+    weights='distance',
+    algorithm='auto'
+)
+knn_reg.fit(X_train, y_train)
+
+knn_reg.predict = calc_runtime(knn_reg.predict)
+knn_reg_pred, runtime = knn_reg.predict(X_test)
+rmse_knn_reg = root_mean_squared_error(y_test, knn_reg_pred)
+
+print(
+    f"KNN regression\n"
+    f"RMSE: {round(rmse_knn_reg, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit multi-layer perceptron regression
+
+"""
+
+mlp_reg = MLPRegressor(
+    max_iter=200, # # 500, 1000
+    hidden_layer_sizes=(100, 50, 30), # # (200, 100), (100, 100, 50)
+    alpha=0.0001, # # 1e-5, 1e-2
+    learning_rate='constant', # # 'adaptive'
+    solver='adam',
+    batch_size=64, # # 'auto'
+    early_stopping=True,
+    tol=1e-3 # # 1e-4
+)
+mlp_reg.fit = calc_runtime(mlp_reg.fit)
+
+result, runtime = mlp_reg.fit(X_train, y_train)
+mlp_reg_pred = mlp_reg.predict(X_test)
+rmse_mlp_reg = root_mean_squared_error(y_test, mlp_reg_pred)
+
+print(
+    f"Multi-layer perceptron regression\n"
+    f"RMSE: {round(rmse_mlp_reg, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
+
+"""
+
+
+##                                                                          ##
+## Fit LightGMB model
+
+"""
+
+data_train = lgb.Dataset(X_train, label=y_train)
+data_test = lgb.Dataset(X_test, label=y_test, reference=data_train)
+
+parameters = {
+    'objective': 'regression',
+    'metric': 'rmse',
+    'num_leaves': 127,
+    'learning_rate': 0.2,
+    'max_depth': 20,
+    'n_estimators': 200,
+    'n_jobs': -1,
+    'bagging_fraction': 0.8,
+    'feature_fraction': 0.6,
+    'min_data_in_leaf': 60,
+    'lambda_l1': 0.1,
+    'lambda_l2': 0.1,
+    'seed': 42,
+    'verbose': -1
+}
+lgb_reg = lgb.train(
+    parameters,
+    data_train,
+    num_boost_round=100,
+    valid_sets=[data_test],
+)
+
+lgb_reg_pred = lgb_reg.predict(X_test, num_iteration=lgb_reg.best_iteration)
+rmse_lgb_reg = root_mean_squared_error(y_test, lgb_reg_pred)
+
+print(
+    f"LightBMG model\n"
+    f"RMSE: {round(rmse_lgb_reg, 5)}\n"
+)
+
+"""
+
+
+##                                                                          ##
+## Fit XGB Regressor
+
+xgb = XGBRegressor(
+    n_estimators=500,
+    learning_rate=0.05,
+    max_depth=6,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    objective="reg:squarederror",
+    n_jobs=-1,
+    random_state=42
+)
+xgb.fit = calc_runtime(xgb.fit)
+
+result, runtime = xgb.fit(X_train, y_train)
+xgb_pred = xgb.predict(X_test)
+rmse_xgb = root_mean_squared_error(y_test, xgb_pred)
+
+print(
+    f"XGB regressor\n"
+    f"RMSE: {round(rmse_xgb, 5)}\n"
+    f"Runtime fitting: {round(runtime / 60, 1)} min."
+)
