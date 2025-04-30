@@ -15,6 +15,9 @@ The scripts included have the following functions:<br>
 04 Trains and tests the machine learning models<br>
 <br>
 51 Comprises submitted solution 1<br>
+52 Comprises submitted solution 2<br>
+53 Comprises submitted solution 3<br>
+54 Comprises submitted solution 4<br>
 <br>
 <br>
 © Vitus Püttmann 2025
